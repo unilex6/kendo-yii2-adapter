@@ -1,0 +1,20 @@
+{
+    "name": "unilex6/kendo-yii2-adapter",
+    "description": "Kendo Grid adapter for Yii2",
+    "authors": [
+        {
+            "name": "UniLex6",
+            "email": "unilex6@gmail.com"
+        }
+    ],
+    "version": "0.0.1-dev",
+    "minimum-stability": "stable",
+    "require": {
+        "yiisoft/yii2": ">=2.0.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "KendoAdapter\\": "src"
+        }
+    }
+}
