@@ -16,7 +16,6 @@ class KendoDataProvider extends ActiveDataProvider
 {
     const DEFAULT_PAGE_SIZE = 15;
 
-    protected $tableAlias;
 
     public $filters;
     public $sorting;
@@ -99,13 +98,10 @@ class KendoDataProvider extends ActiveDataProvider
 
     protected function addFilters(Query $query, KendoFiltersCollection $filters)
     {
-        $secureFieldsList = $this->getSecureFields($query);
-        $tableAlias = $this->getTableAlias($query);
-
         for ($i = 0; $i < count($filters->filters); $i++) {
             $filter = $filters->filters[$i];
 
-            if (!in_array($filter->field, $secureFieldsList))
+			if(!$tableAlias = $this->getTableAliasByField($query, $filter->field))
                 continue;
 				
 			if($filter->field=="id")
@@ -116,7 +112,7 @@ class KendoDataProvider extends ActiveDataProvider
 				$data = preg_split('|\ |',$filter->value);
 				$time = strtotime($data[1].' '.$data[2].' '.$data[3]);
 				$filter->operator = KendoFiltersCollection::OPERATOR_STRING;
-				$filter->value = "{$tableAlias}.{$filter->field} BETWEEN {$time} AND ".($time+(3600*24));
+				$filter->value = "\"{$tableAlias}\".\"{$filter->field}\" BETWEEN {$time} AND ".($time+(3600*24));
 			}
 				
             if ($filter->conditions) {
@@ -124,17 +120,17 @@ class KendoDataProvider extends ActiveDataProvider
                     $query = $query->andWhere($filter->conditions[$j]);
                 }
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_EQUAL) {
-                $query = $query->andWhere(["{$tableAlias}.{$filter->field}" => $filter->value]);
+                $query = $query->andWhere(["\"{$tableAlias}\".\"{$filter->field}\"" => $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_LIKE) {
-                $query = $query->andWhere(['like', "LOWER({$tableAlias}.{$filter->field})", $filter->value]);
+                $query = $query->andWhere(['like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_NOT_EQUAL) {
-                $query = $query->andWhere(['not', ["{$tableAlias}.{$filter->field}" => $filter->value]]);
+                $query = $query->andWhere(['not', ["\"{$tableAlias}\".\"{$filter->field}\"" => $filter->value]]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_STARTS_WITH) {
-                $query = $query->andWhere(['like', "LOWER({$tableAlias}.{$filter->field})", "{$filter->value}%", false]);
+                $query = $query->andWhere(['like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", "{$filter->value}%", false]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_NOT_LIKE) {
-                $query = $query->andWhere(['not like', "LOWER({$tableAlias}.{$filter->field})", $filter->value]);
+                $query = $query->andWhere(['not like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_ENDS_WITH) {
-                $query = $query->andWhere(['like', "LOWER({$tableAlias}.{$filter->field})", "%{$filter->value}", false]);
+                $query = $query->andWhere(['like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", "%{$filter->value}", false]);
             } elseif ($filter->operator ===  KendoFiltersCollection::OPERATOR_STRING) {
                 $query->andWhere($filter->value);
             }
@@ -143,30 +139,31 @@ class KendoDataProvider extends ActiveDataProvider
         return $query;
     }
 
-    protected function getSecureFields(Query $queryOriginal)
-    {
-        $query = clone $queryOriginal;
-		$model = new $query->modelClass;;
+	protected static function getStructuredFields(Query $queryOriginal)
+	{
+		$out = [];
 		
-        return $model::getTableSchema()->getColumnNames();
-    }
-
-    public function getTableAlias(Query $queryOriginal)
-    {
-        if (!$this->tableAlias) {
-            $query = clone $queryOriginal;
-            $query = $query->prepare(Yii::$app->db->queryBuilder);
-
-            $this->tableAlias = $query->from[0];
-        }
-
-        return $this->tableAlias;
-    }
-
-    public function setTableAlias($alias)
-    {
-        $this->tableAlias = $alias;
-    }
+		$query = clone $queryOriginal;
+		$model = new $query->modelClass;
+		
+		$out[$query->from[0]] = $model::getTableSchema()->getColumnNames();
+		
+		if(isset($queryOriginal->joinWith[0]))
+			foreach($queryOriginal->joinWith[0][0] as $table_name)
+				$out[$table_name] = ('common\\models\\'.ucfirst($table_name))::getTableSchema()->getColumnNames();
+		 
+        return $out;
+	}
+	
+	protected function getTableAliasByField(Query $queryOriginal, $field_name)
+	{
+		$query = clone $queryOriginal;
+		
+		foreach(self::getStructuredFields($query) as $table_name => $fields)
+			if(in_array($field_name, $fields))
+				return $table_name;
+		
+	}
 
     public function getSortingByField($field)
     {
