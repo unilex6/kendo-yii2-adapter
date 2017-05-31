@@ -111,6 +111,14 @@ class KendoDataProvider extends ActiveDataProvider
 			if($filter->field=="id")
 				$filter->operator = KendoFiltersCollection::OPERATOR_EQUAL;
 				
+			if($filter->field=="created_at" OR $filter->field=="updated_at")
+			{
+				$data = preg_split('|\ |',$filter->value);
+				$time = strtotime($data[1].' '.$data[2].' '.$data[3]);
+				$filter->operator = KendoFiltersCollection::OPERATOR_STRING;
+				$filter->value = "{$tableAlias}.{$filter->field} BETWEEN {$time} AND ".($time+(3600*24));
+			}
+				
             if ($filter->conditions) {
                 for ($j = 0; $j < count($filter->conditions); $j++) {
                     $query = $query->andWhere($filter->conditions[$j]);
