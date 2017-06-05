@@ -112,7 +112,7 @@ class KendoDataProvider extends ActiveDataProvider
 				$data = preg_split('|\ |',$filter->value);
 				$time = strtotime($data[1].' '.$data[2].' '.$data[3]);
 				$filter->operator = KendoFiltersCollection::OPERATOR_STRING;
-				$filter->value = "\"{$tableAlias}\".\"{$filter->field}\" BETWEEN {$time} AND ".($time+(3600*24));
+				$filter->value = "{$tableAlias}.\"{$filter->field}\" BETWEEN {$time} AND ".($time+(3600*24));
 			}
 				
             if ($filter->conditions) {
@@ -120,17 +120,17 @@ class KendoDataProvider extends ActiveDataProvider
                     $query = $query->andWhere($filter->conditions[$j]);
                 }
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_EQUAL) {
-                $query = $query->andWhere(["\"{$tableAlias}\".\"{$filter->field}\"" => $filter->value]);
+                $query = $query->andWhere(["{$tableAlias}.\"{$filter->field}\"" => $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_LIKE) {
-                $query = $query->andWhere(['like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", $filter->value]);
+                $query = $query->andWhere(['like', "LOWER({$tableAlias}.\"{$filter->field}\")", $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_NOT_EQUAL) {
-                $query = $query->andWhere(['not', ["\"{$tableAlias}\".\"{$filter->field}\"" => $filter->value]]);
+                $query = $query->andWhere(['not', ["{$tableAlias}.\"{$filter->field}\"" => $filter->value]]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_STARTS_WITH) {
-                $query = $query->andWhere(['like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", "{$filter->value}%", false]);
+                $query = $query->andWhere(['like', "LOWER({$tableAlias}.\"{$filter->field}\")", "{$filter->value}%", false]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_NOT_LIKE) {
-                $query = $query->andWhere(['not like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", $filter->value]);
+                $query = $query->andWhere(['not like', "LOWER({$tableAlias}.\"{$filter->field}\")", $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_ENDS_WITH) {
-                $query = $query->andWhere(['like', "LOWER(\"{$tableAlias}\".\"{$filter->field}\")", "%{$filter->value}", false]);
+                $query = $query->andWhere(['like', "LOWER({$tableAlias}.\"{$filter->field}\")", "%{$filter->value}", false]);
             } elseif ($filter->operator ===  KendoFiltersCollection::OPERATOR_STRING) {
                 $query->andWhere($filter->value);
             }
@@ -142,16 +142,22 @@ class KendoDataProvider extends ActiveDataProvider
 	protected static function getStructuredFields(Query $queryOriginal)
 	{
 		$out = [];
-		
 		$query = clone $queryOriginal;
 		$model = new $query->modelClass;
 		
-		$out[$query->from[0]] = $model::getTableSchema()->getColumnNames();
+		$query = $query->prepare(Yii::$app->db->queryBuilder);
 		
-		if(isset($queryOriginal->joinWith[0]))
+		$table_name = preg_replace('|\"|','',$query->from[0]);
+		$out[$table_name] = $model::getTableSchema()->getColumnNames();
+		
+		if(count($queryOriginal->joinWith[0][0])>0)
+		{
 			foreach($queryOriginal->joinWith[0][0] as $table_name)
-				$out[$table_name] = ('common\\models\\'.ucfirst($table_name))::getTableSchema()->getColumnNames();
-		 
+			{
+				$class_item = 'common\\models\\'.ucfirst($table_name);
+				$out["{{%".$table_name."}}"] = $class_item::getTableSchema()->getColumnNames();
+			}
+		}
         return $out;
 	}
 	
