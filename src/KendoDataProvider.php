@@ -112,7 +112,7 @@ class KendoDataProvider extends ActiveDataProvider
 				$data = preg_split('|\ |',$filter->value);
 				$time = strtotime($data[1].' '.$data[2].' '.$data[3]);
 				$filter->operator = KendoFiltersCollection::OPERATOR_STRING;
-				$filter->value = "{$tableAlias}.\"{$filter->field}\" BETWEEN {$time} AND ".($time+(3600*24));
+				$filter->value = "{$tableAlias}.{$filter->field} BETWEEN {$time} AND ".($time+(3600*24));
 			}
 				
             if ($filter->conditions) {
