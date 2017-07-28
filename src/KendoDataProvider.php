@@ -120,17 +120,17 @@ class KendoDataProvider extends ActiveDataProvider
                     $query = $query->andWhere($filter->conditions[$j]);
                 }
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_EQUAL) {
-                $query = $query->andWhere(["{$tableAlias}.\"{$filter->field}\"" => $filter->value]);
+                $query = $query->andWhere(["{$tableAlias}.{$filter->field}" => $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_LIKE) {
-                $query = $query->andWhere(['like', "LOWER({$tableAlias}.\"{$filter->field}\")", $filter->value]);
+                $query = $query->andWhere(['like', "LOWER({$tableAlias}.{$filter->field})", $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_NOT_EQUAL) {
-                $query = $query->andWhere(['not', ["{$tableAlias}.\"{$filter->field}\"" => $filter->value]]);
+                $query = $query->andWhere(['not', ["{$tableAlias}.{$filter->field}" => $filter->value]]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_STARTS_WITH) {
-                $query = $query->andWhere(['like', "LOWER({$tableAlias}.\"{$filter->field}\")", "{$filter->value}%", false]);
+                $query = $query->andWhere(['like', "LOWER({$tableAlias}.{$filter->field})", "{$filter->value}%", false]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_NOT_LIKE) {
-                $query = $query->andWhere(['not like', "LOWER({$tableAlias}.\"{$filter->field}\")", $filter->value]);
+                $query = $query->andWhere(['not like', "LOWER({$tableAlias}.{$filter->field})", $filter->value]);
             } elseif ($filter->operator === KendoFiltersCollection::OPERATOR_ENDS_WITH) {
-                $query = $query->andWhere(['like', "LOWER({$tableAlias}.\"{$filter->field}\")", "%{$filter->value}", false]);
+                $query = $query->andWhere(['like', "LOWER({$tableAlias}.{$filter->field})", "%{$filter->value}", false]);
             } elseif ($filter->operator ===  KendoFiltersCollection::OPERATOR_STRING) {
                 $query->andWhere($filter->value);
             }
